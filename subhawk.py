@@ -69,14 +69,14 @@ def print_header():
     if RICH_AVAILABLE:
         header_text = Text()
         header_text.append("╔═══════════════════════════════════════════════════════════════════════════╗\n", style="cyan bold")
-        header_text.append("║                        FINDOMAIN v2.0                                   ║\n", style="cyan bold")
+        header_text.append("║                        SUBHAWK v2.0                                   ║\n", style="cyan bold")
         header_text.append("║                   Author: bugxcve | License: MIT                         ║\n", style="magenta")
         header_text.append("║              Advanced Subdomain Discovery with Interactive CLI           ║\n", style="yellow")
         header_text.append("╚═══════════════════════════════════════════════════════════════════════════╝\n", style="cyan bold")
         console.print(header_text)
     else:
         print("╔═══════════════════════════════════════════════════════════════════════════╗")
-        print("║                        FINDOMAIN v2.0                                   ║")
+        print("║                        SUBHAWK v2.0                                   ║")
         print("║                   Author: bugxcve | License: MIT                         ║")
         print("║              Advanced Subdomain Discovery with Interactive CLI           ║")
         print("╚═══════════════════════════════════════════════════════════════════════════╝\n")
