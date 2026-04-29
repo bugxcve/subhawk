@@ -330,15 +330,8 @@ copies or substantial portions of the Software.
 ## Author
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
-- Website: [yourwebsite.com](https://yourwebsite.com)
-
-## Support
-
-- 📝 Report bugs: [GitHub Issues](https://github.com/yourusername/subdomain-enumerator/issues)
-- 💬 Discussions: [GitHub Discussions](https://github.com/yourusername/subdomain-enumerator/discussions)
-- 📧 Email: your.email@example.com
+- GitHub: [@bugxcve](https://github.com/bugxcve)
+- Email: bugxcve@example.com
 
 ## Changelog
 
