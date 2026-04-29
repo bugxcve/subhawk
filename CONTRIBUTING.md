@@ -18,8 +18,8 @@ Click the "Fork" button on the GitHub repository page to create your own copy.
 ### 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/findomain.git
-cd findomain
+git clone https://github.com/YOUR_USERNAME/subhawk.git
+cd subhawk
 ```
 
 ### 3. Set Up Development Environment
@@ -56,7 +56,7 @@ git checkout -b feature/your-feature-name
 Use `black` to format your code:
 
 ```bash
-black findomain.py
+black subhawk.py
 ```
 
 ### Linting
@@ -64,7 +64,7 @@ black findomain.py
 Check your code with `flake8`:
 
 ```bash
-flake8 findomain.py
+flake8 subhawk.py
 ```
 
 ### Testing
@@ -78,7 +78,7 @@ flake8 findomain.py
 pytest tests/
 
 # Or test manually
-python3 findomain.py google.com -v
+python3 subhawk.py google.com -v
 ```
 
 ## Types of Contributions
@@ -104,7 +104,7 @@ Description:
 When enumerating large domains (>1000 subdomains), the CT enumeration times out.
 
 Steps to Reproduce:
-1. Run: python3 findomain.py largedomain.com
+1. Run: python3 subhawk.py largedomain.com
 2. CT enumeration hangs after 30 seconds
 
 Expected: Graceful timeout with partial results
@@ -183,7 +183,7 @@ Help improve documentation:
 # Make your changes to the code
 # Example: Add a new enumeration technique
 
-nano findomain.py
+nano subhawk.py
 ```
 
 ### 2. Commit Your Changes
