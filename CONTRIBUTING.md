@@ -56,7 +56,7 @@ git checkout -b feature/your-feature-name
 Use `black` to format your code:
 
 ```bash
-black subdomain_enumerator.py
+black findomain.py
 ```
 
 ### Linting
@@ -64,7 +64,7 @@ black subdomain_enumerator.py
 Check your code with `flake8`:
 
 ```bash
-flake8 subdomain_enumerator.py
+flake8 findomain.py
 ```
 
 ### Testing
@@ -78,7 +78,7 @@ flake8 subdomain_enumerator.py
 pytest tests/
 
 # Or test manually
-python3 subdomain_enumerator.py google.com -v
+python3 findomain.py google.com -v
 ```
 
 ## Types of Contributions
@@ -104,7 +104,7 @@ Description:
 When enumerating large domains (>1000 subdomains), the CT enumeration times out.
 
 Steps to Reproduce:
-1. Run: python3 subdomain_enumerator.py largedomain.com
+1. Run: python3 findomain.py largedomain.com
 2. CT enumeration hangs after 30 seconds
 
 Expected: Graceful timeout with partial results
@@ -183,7 +183,7 @@ Help improve documentation:
 # Make your changes to the code
 # Example: Add a new enumeration technique
 
-nano subdomain_enumerator.py
+nano findomain.py
 ```
 
 ### 2. Commit Your Changes
