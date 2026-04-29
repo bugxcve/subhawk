@@ -86,7 +86,7 @@ pip install -r requirements.txt
 ### 4. Make Script Executable (Linux/macOS)
 
 ```bash
-chmod +x findomain.py
+chmod +x subhawk.py
 ```
 
 ## Usage
@@ -94,13 +94,13 @@ chmod +x findomain.py
 ### Basic Usage
 
 ```bash
-python3 findomain.py example.com
+python3 subhawk.py example.com
 ```
 
 ### With All Options
 
 ```bash
-python3 findomain.py example.com -v --verify -o results
+python3 subhawk.py example.com -v --verify -o results
 ```
 
 ### Command-Line Arguments
@@ -188,7 +188,7 @@ www.example.com
 
 ### Example 1: Basic Enumeration
 ```bash
-$ python3 findomain.py google.com
+$ python3 subhawk.py google.com
 
 [2026-04-29 10:30:00] [INFO] Starting enumeration for domain: google.com
 [2026-04-29 10:30:05] [SUCCESS] Found 45 subdomains via Sublist3r
@@ -213,12 +213,12 @@ Discovered Subdomains:
 
 ### Example 2: Verbose with Verification
 ```bash
-python3 findomain.py example.com -v --verify -o my_results
+python3 subhawk.py example.com -v --verify -o my_results
 ```
 
 ### Example 3: Check Specific Domain with Output
 ```bash
-python3 findomain.py tesla.com -o tesla_subdomains
+python3 subhawk.py tesla.com -o tesla_subdomains
 ```
 
 ## API Keys (Optional)
@@ -229,7 +229,7 @@ To use Shodan API for additional enumeration:
 
 1. Get a free account at https://www.shodan.io/
 2. Get your API key from https://account.shodan.io/
-3. Add the key to line 244 in `findomain.py`:
+3. Add the key to line 244 in `subhawk.py`:
 
 ```python
 shodan_key = "YOUR_SHODAN_API_KEY_HERE"
