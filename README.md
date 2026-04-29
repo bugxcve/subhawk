@@ -331,7 +331,7 @@ copies or substantial portions of the Software.
 
 **Your Name**
 - GitHub: [@bugxcve](https://github.com/bugxcve)
-- Email: bugxcve@example.com
+- Email: bugxcve@gmail.com
 
 ## Changelog
 
