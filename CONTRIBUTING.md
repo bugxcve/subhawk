@@ -18,8 +18,8 @@ Click the "Fork" button on the GitHub repository page to create your own copy.
 ### 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/subdomain-enumerator.git
-cd subdomain-enumerator
+git clone https://github.com/YOUR_USERNAME/findomain.git
+cd findomain
 ```
 
 ### 3. Set Up Development Environment
