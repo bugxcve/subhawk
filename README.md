@@ -86,7 +86,7 @@ pip install -r requirements.txt
 ### 4. Make Script Executable (Linux/macOS)
 
 ```bash
-chmod +x subdomain_enumerator.py
+chmod +x findomain.py
 ```
 
 ## Usage
@@ -94,13 +94,13 @@ chmod +x subdomain_enumerator.py
 ### Basic Usage
 
 ```bash
-python3 subdomain_enumerator.py example.com
+python3 findomain.py example.com
 ```
 
 ### With All Options
 
 ```bash
-python3 subdomain_enumerator.py example.com -v --verify -o results
+python3 findomain.py example.com -v --verify -o results
 ```
 
 ### Command-Line Arguments
