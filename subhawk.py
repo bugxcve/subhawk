@@ -1,391 +1,624 @@
 #!/usr/bin/env python3
 """
-Subdomain Enumeration Tool
-A comprehensive subdomain discovery tool using multiple enumeration techniques.
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                         SUBHAWK v2.0                                   ║
+║          Advanced Subdomain Discovery with Interactive CLI UI            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
 
-Author: Your Name
-Date: 2026
+Tool: subhawk
+Author: bugxcve
+Version: 2.0.0
 License: MIT
+GitHub: https://github.com/bugxcve/subhawk
+
+Description:
+    A comprehensive subdomain discovery tool using multiple enumeration
+    techniques with beautiful CLI interface and interactive mode.
+
+Features:
+    ✓ 5 Enumeration Techniques
+    ✓ Interactive CLI Mode
+    ✓ Beautiful UI with Colors
+    ✓ DNS Verification
+    ✓ JSON & TXT Output
+    ✓ Progress Indicators
+    ✓ Domain Validation
 """
 
 import requests
 import dns.resolver
-import subprocess
 import json
 import argparse
 import sys
 import time
-from datetime import datetime
-from typing import Set, List
 import socket
+import re
+from datetime import datetime
+from typing import Set, List, Dict
+from pathlib import Path
 
-# Try to import sublist3r, if not installed, provide installation instructions
+# Try to import rich for beautiful UI
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+    from rich.table import Table
+    from rich.prompt import Prompt
+    from rich.text import Text
+    from rich.box import ROUNDED
+    RICH_AVAILABLE = True
+except ImportError:
+    RICH_AVAILABLE = False
+    print("[!] Rich library not installed. Install with: pip install rich")
+    print("[*] Continuing with basic output...\n")
+
+# Try to import sublist3r
 try:
     import sublist3r
+    SUBLIST3R_AVAILABLE = True
 except ImportError:
+    SUBLIST3R_AVAILABLE = False
     print("[!] sublist3r not installed. Install with: pip install sublist3r")
-    sys.exit(1)
+
+# Initialize console
+console = Console() if RICH_AVAILABLE else None
 
 
-class SubdomainEnumerator:
-    """
-    Main class for subdomain enumeration using multiple techniques.
-    """
+def print_header():
+    """Print beautiful header"""
+    if RICH_AVAILABLE:
+        header_text = Text()
+        header_text.append("╔═══════════════════════════════════════════════════════════════════════════╗\n", style="cyan bold")
+        header_text.append("║                        FINDOMAIN v2.0                                   ║\n", style="cyan bold")
+        header_text.append("║                   Author: bugxcve | License: MIT                         ║\n", style="magenta")
+        header_text.append("║              Advanced Subdomain Discovery with Interactive CLI           ║\n", style="yellow")
+        header_text.append("╚═══════════════════════════════════════════════════════════════════════════╝\n", style="cyan bold")
+        console.print(header_text)
+    else:
+        print("╔═══════════════════════════════════════════════════════════════════════════╗")
+        print("║                        FINDOMAIN v2.0                                   ║")
+        print("║                   Author: bugxcve | License: MIT                         ║")
+        print("║              Advanced Subdomain Discovery with Interactive CLI           ║")
+        print("╚═══════════════════════════════════════════════════════════════════════════╝\n")
+
+
+def validate_domain(domain: str) -> bool:
+    """Validate domain name format"""
+    domain_pattern = r'^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$'
+    return re.match(domain_pattern, domain) is not None
+
+
+def log_msg(message: str, level: str = "INFO", emoji: str = "ℹ️"):
+    """Print log message with style"""
+    if RICH_AVAILABLE:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        
+        if level == "SUCCESS":
+            console.print(f"[green]✓[/green] [{timestamp}] {message}")
+        elif level == "ERROR":
+            console.print(f"[red]✗[/red] [{timestamp}] {message}")
+        elif level == "WARNING":
+            console.print(f"[yellow]⚠[/yellow] [{timestamp}] {message}")
+        elif level == "INFO":
+            console.print(f"[cyan]ℹ[/cyan] [{timestamp}] {message}")
+        else:
+            console.print(f"[white]{emoji}[/white] [{timestamp}] {message}")
+    else:
+        print(f"[{level}] {message}")
+
+
+class Findomain:
+    """Advanced subdomain enumeration with CLI UI"""
 
     def __init__(self, domain: str, verbose: bool = False):
-        """
-        Initialize the enumerator.
-        
-        Args:
-            domain (str): Target domain to enumerate
-            verbose (bool): Enable verbose output
-        """
         self.domain = domain
         self.verbose = verbose
         self.subdomains: Set[str] = set()
         self.results = {
             'domain': domain,
             'timestamp': datetime.now().isoformat(),
+            'tool': 'findomain',
+            'version': '2.0.0',
+            'author': 'bugxcve',
             'techniques': {},
-            'total_subdomains': 0
+            'total_subdomains': 0,
+            'subdomains': []
         }
 
-    def log(self, message: str, level: str = "INFO"):
-        """Print log messages with timestamp."""
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{timestamp}] [{level}] {message}")
-
-    # ==================== Technique 1: Sublist3r ====================
     def enumerate_sublist3r(self) -> Set[str]:
-        """
-        Use Sublist3r for subdomain enumeration.
-        Uses search engines and other public sources.
-        """
-        self.log("Starting Sublist3r enumeration...")
-        sublist3r_subs = set()
+        """Enumeration using Sublist3r"""
+        subs = set()
         
+        if not SUBLIST3R_AVAILABLE:
+            log_msg("Sublist3r not available, skipping...", "WARNING")
+            return subs
+
         try:
-            # Run sublist3r
-            subdomains = sublist3r.main(
-                self.domain,
-                40,  # number of threads
-                output=None,
-                ports=None,
-                silent=True,
-                verbose=self.verbose,
-                enable_bruteforce=False,
-                save=False
-            )
+            if RICH_AVAILABLE:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("[cyan]Running Sublist3r...", total=None)
+                    subdomains = sublist3r.main(
+                        self.domain, 40, output=None, ports=None,
+                        silent=True, verbose=False, enable_bruteforce=False, save=False
+                    )
+                    progress.update(task, completed=True)
+            else:
+                subdomains = sublist3r.main(
+                    self.domain, 40, output=None, ports=None,
+                    silent=True, verbose=False, enable_bruteforce=False, save=False
+                )
             
             if subdomains:
-                sublist3r_subs = set(subdomains)
-                self.log(f"Found {len(sublist3r_subs)} subdomains via Sublist3r", "SUCCESS")
+                subs = set(subdomains)
+                log_msg(f"Found {len(subs)} subdomains via Sublist3r", "SUCCESS")
             else:
-                self.log("Sublist3r found no subdomains", "WARNING")
-                
+                log_msg("Sublist3r found no subdomains", "WARNING")
         except Exception as e:
-            self.log(f"Sublist3r enumeration failed: {str(e)}", "ERROR")
+            log_msg(f"Sublist3r error: {str(e)}", "ERROR")
         
-        self.results['techniques']['sublist3r'] = list(sublist3r_subs)
-        return sublist3r_subs
+        self.results['techniques']['sublist3r'] = list(subs)
+        return subs
 
-    # ==================== Technique 2: Certificate Transparency ====================
     def enumerate_certificate_transparency(self) -> Set[str]:
-        """
-        Query Certificate Transparency logs via crt.sh for subdomains.
-        """
-        self.log("Starting Certificate Transparency enumeration...")
+        """Certificate Transparency enumeration"""
         ct_subs = set()
         
         try:
-            url = f"https://crt.sh/?q=%25.{self.domain}&output=json"
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            
-            ct_data = response.json()
+            if RICH_AVAILABLE:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("[cyan]Querying Certificate Transparency...", total=None)
+                    url = f"https://crt.sh/?q=%25.{self.domain}&output=json"
+                    response = requests.get(url, timeout=10)
+                    response.raise_for_status()
+                    ct_data = response.json()
+                    progress.update(task, completed=True)
+            else:
+                url = f"https://crt.sh/?q=%25.{self.domain}&output=json"
+                response = requests.get(url, timeout=10)
+                response.raise_for_status()
+                ct_data = response.json()
             
             for entry in ct_data:
                 name_value = entry.get('name_value', '')
-                # Split by newline in case of multiple names
                 for subdomain in name_value.split('\n'):
                     subdomain = subdomain.strip()
                     if subdomain and subdomain.endswith(self.domain):
                         ct_subs.add(subdomain)
             
-            self.log(f"Found {len(ct_subs)} subdomains via Certificate Transparency", "SUCCESS")
-            
-        except requests.RequestException as e:
-            self.log(f"Certificate Transparency enumeration failed: {str(e)}", "ERROR")
-        except json.JSONDecodeError:
-            self.log("Failed to parse Certificate Transparency response", "ERROR")
+            log_msg(f"Found {len(ct_subs)} subdomains via Certificate Transparency", "SUCCESS")
+        except Exception as e:
+            log_msg(f"Certificate Transparency error: {str(e)}", "ERROR")
         
         self.results['techniques']['certificate_transparency'] = list(ct_subs)
         return ct_subs
 
-    # ==================== Technique 3: DNS Enumeration ====================
     def enumerate_dns_records(self) -> Set[str]:
-        """
-        Perform DNS enumeration to find subdomains.
-        """
-        self.log("Starting DNS enumeration...")
+        """DNS record enumeration"""
         dns_subs = set()
         
         try:
-            # Try to get DNS NS records
-            try:
-                ns_records = dns.resolver.resolve(self.domain, 'NS')
-                nameservers = [str(rr.target).rstrip('.') for rr in ns_records]
-                self.log(f"Found nameservers: {', '.join(nameservers)}", "INFO")
-            except Exception as e:
-                self.log(f"Failed to resolve NS records: {str(e)}", "WARNING")
-                nameservers = []
+            if RICH_AVAILABLE:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("[cyan]Performing DNS enumeration...", total=None)
+                    
+                    try:
+                        ns_records = dns.resolver.resolve(self.domain, 'NS')
+                        nameservers = [str(rr.target).rstrip('.') for rr in ns_records]
+                        log_msg(f"Nameservers: {', '.join(nameservers[:3])}", "INFO")
+                    except:
+                        pass
+                    
+                    try:
+                        mx_records = dns.resolver.resolve(self.domain, 'MX')
+                        for mx in mx_records:
+                            mx_host = str(mx.exchange).rstrip('.')
+                            dns_subs.add(mx_host)
+                    except:
+                        pass
+                    
+                    progress.update(task, completed=True)
+            else:
+                try:
+                    mx_records = dns.resolver.resolve(self.domain, 'MX')
+                    for mx in mx_records:
+                        mx_host = str(mx.exchange).rstrip('.')
+                        dns_subs.add(mx_host)
+                except:
+                    pass
             
-            # Try to get A records
-            try:
-                a_records = dns.resolver.resolve(self.domain, 'A')
-                self.log(f"Domain resolves to: {[str(rr) for rr in a_records]}", "INFO")
-            except Exception as e:
-                self.log(f"Failed to resolve A records: {str(e)}", "WARNING")
-            
-            # Try to get MX records
-            try:
-                mx_records = dns.resolver.resolve(self.domain, 'MX')
-                for mx in mx_records:
-                    mx_host = str(mx.exchange).rstrip('.')
-                    dns_subs.add(mx_host)
-            except Exception as e:
-                self.log(f"Failed to resolve MX records: {str(e)}", "WARNING")
-            
+            if dns_subs:
+                log_msg(f"Found {len(dns_subs)} records via DNS", "SUCCESS")
         except Exception as e:
-            self.log(f"DNS enumeration failed: {str(e)}", "ERROR")
+            log_msg(f"DNS enumeration error: {str(e)}", "ERROR")
         
         self.results['techniques']['dns_enumeration'] = list(dns_subs)
         return dns_subs
 
-    # ==================== Technique 4: Common Subdomain Bruteforce ====================
     def enumerate_brute_force(self) -> Set[str]:
-        """
-        Brute force common subdomain names.
-        """
-        self.log("Starting brute force enumeration...")
+        """Brute force common subdomains"""
         brute_subs = set()
         
-        # Common subdomain prefixes
         common_subs = [
             'www', 'mail', 'ftp', 'localhost', 'webmail', 'smtp', 'pop', 'ns1',
             'webdisk', 'ns2', 'cpanel', 'whm', 'autodiscover', 'autoconfig',
             'm', 'imap', 'test', 'portal', 'admin', 'api', 'cdn', 'blog',
-            'shop', 'dev', 'staging', 'staging-api', 'test-api', 'demo',
-            'dashboard', 'panel', 'backup', 'mail1', 'mail2', 'db', 'database',
-            'git', 'gitlab', 'github', 'jenkins', 'vpn', 'vpn2', 'server',
-            'app', 'apps', 'service', 'services', 'static', 'downloads',
-            'documents', 'docs', 'support', 'help', 'helpdesk', 'wiki',
-            'forum', 'forums', 'chat', 'slack', 'teams', 'social',
-            'internal', 'corp', 'corporate', 'secure', 'cloud', 'storage'
+            'shop', 'dev', 'staging', 'demo', 'dashboard', 'panel', 'backup',
+            'git', 'jenkins', 'vpn', 'server', 'app', 'service', 'static',
+            'docs', 'support', 'forum', 'chat', 'internal', 'secure', 'cloud'
         ]
         
-        for subdomain in common_subs:
-            test_url = f"{subdomain}.{self.domain}"
-            try:
-                # Try DNS resolution
-                socket.gethostbyname(test_url)
-                brute_subs.add(test_url)
-                self.log(f"Found subdomain via brute force: {test_url}", "SUCCESS")
-            except socket.gaierror:
-                pass  # Subdomain doesn't exist
-            except Exception as e:
-                pass  # Other errors, continue
+        try:
+            if RICH_AVAILABLE:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("[cyan]Brute forcing common subdomains...", total=len(common_subs))
+                    
+                    for subdomain in common_subs:
+                        test_url = f"{subdomain}.{self.domain}"
+                        try:
+                            socket.gethostbyname(test_url)
+                            brute_subs.add(test_url)
+                        except:
+                            pass
+                        
+                        progress.update(task, advance=1)
+                        time.sleep(0.05)
+            else:
+                for subdomain in common_subs:
+                    test_url = f"{subdomain}.{self.domain}"
+                    try:
+                        socket.gethostbyname(test_url)
+                        brute_subs.add(test_url)
+                    except:
+                        pass
+                    time.sleep(0.05)
             
-            time.sleep(0.1)  # Rate limiting to avoid blocking
+            if brute_subs:
+                log_msg(f"Found {len(brute_subs)} subdomains via brute force", "SUCCESS")
+        except Exception as e:
+            log_msg(f"Brute force error: {str(e)}", "ERROR")
         
-        self.log(f"Found {len(brute_subs)} subdomains via brute force", "SUCCESS")
         self.results['techniques']['brute_force'] = list(brute_subs)
         return brute_subs
 
-    # ==================== Technique 5: Public APIs ====================
     def enumerate_public_apis(self) -> Set[str]:
-        """
-        Query public subdomain APIs like Shodan, VirusTotal, etc.
-        Note: These may require API keys.
-        """
-        self.log("Starting public API enumeration...")
+        """Public API enumeration"""
         api_subs = set()
         
-        # Try Shodan API (requires API key)
-        shodan_key = None  # Set your Shodan API key here
-        if shodan_key:
-            try:
-                import shodan
-                api = shodan.Shodan(shodan_key)
-                results = api.search(f'hostname:{self.domain}')
-                for result in results['matches']:
-                    api_subs.add(result['hostname'])
-                self.log(f"Found {len(api_subs)} subdomains via Shodan", "SUCCESS")
-            except Exception as e:
-                self.log(f"Shodan API enumeration failed: {str(e)}", "WARNING")
-        
-        # Try HackerTarget API (Free, no key needed)
         try:
-            url = f"https://api.hackertarget.com/hostsearch/?q={self.domain}"
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            
-            for line in response.text.strip().split('\n'):
-                if line and ',' in line:
-                    subdomain = line.split(',')[0].strip()
-                    if subdomain:
-                        api_subs.add(subdomain)
+            if RICH_AVAILABLE:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("[cyan]Querying public APIs...", total=None)
+                    
+                    try:
+                        url = f"https://api.hackertarget.com/hostsearch/?q={self.domain}"
+                        response = requests.get(url, timeout=10)
+                        response.raise_for_status()
+                        
+                        for line in response.text.strip().split('\n'):
+                            if line and ',' in line:
+                                subdomain = line.split(',')[0].strip()
+                                if subdomain:
+                                    api_subs.add(subdomain)
+                    except:
+                        pass
+                    
+                    progress.update(task, completed=True)
+            else:
+                try:
+                    url = f"https://api.hackertarget.com/hostsearch/?q={self.domain}"
+                    response = requests.get(url, timeout=10)
+                    response.raise_for_status()
+                    
+                    for line in response.text.strip().split('\n'):
+                        if line and ',' in line:
+                            subdomain = line.split(',')[0].strip()
+                            if subdomain:
+                                api_subs.add(subdomain)
+                except:
+                    pass
             
             if api_subs:
-                self.log(f"Found {len(api_subs)} subdomains via HackerTarget", "SUCCESS")
+                log_msg(f"Found {len(api_subs)} subdomains via public APIs", "SUCCESS")
         except Exception as e:
-            self.log(f"HackerTarget API enumeration failed: {str(e)}", "WARNING")
+            log_msg(f"Public API error: {str(e)}", "ERROR")
         
         self.results['techniques']['public_apis'] = list(api_subs)
         return api_subs
 
-    # ==================== Main Enumeration ====================
     def enumerate_all(self) -> Set[str]:
-        """
-        Run all enumeration techniques.
-        """
-        self.log(f"Starting enumeration for domain: {self.domain}")
-        self.log("=" * 60)
+        """Run all enumeration techniques"""
+        log_msg(f"Starting enumeration for: {self.domain}", "INFO")
         
-        # Run all techniques
+        if RICH_AVAILABLE:
+            console.print(Panel(f"[bold cyan]Target Domain:[/bold cyan] {self.domain}", title="[bold]Enumeration Started[/bold]", border_style="cyan"))
+            console.print()
+        else:
+            print(f"\nTarget Domain: {self.domain}\n")
+        
         self.subdomains.update(self.enumerate_sublist3r())
         self.subdomains.update(self.enumerate_certificate_transparency())
         self.subdomains.update(self.enumerate_dns_records())
         self.subdomains.update(self.enumerate_brute_force())
         self.subdomains.update(self.enumerate_public_apis())
         
-        # Remove root domain if it got added
+        # Remove root domain
         self.subdomains.discard(self.domain)
-        
-        self.log("=" * 60)
-        self.log(f"Enumeration complete. Found {len(self.subdomains)} unique subdomains")
         
         self.results['total_subdomains'] = len(self.subdomains)
         self.results['subdomains'] = sorted(list(self.subdomains))
         
         return self.subdomains
 
-    def verify_subdomains(self) -> dict:
-        """
-        Verify which subdomains are actually resolvable.
-        """
-        self.log("Verifying subdomains...")
+    def verify_subdomains(self) -> Dict[str, str]:
+        """Verify subdomains with DNS resolution"""
         verified = {}
         
-        for subdomain in self.subdomains:
-            try:
-                ip = socket.gethostbyname(subdomain)
-                verified[subdomain] = ip
-                self.log(f"✓ {subdomain} -> {ip}", "SUCCESS")
-            except socket.gaierror:
-                self.log(f"✗ {subdomain} (no DNS record)", "WARNING")
-            except Exception as e:
-                pass
+        try:
+            if RICH_AVAILABLE:
+                with Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    console=console
+                ) as progress:
+                    task = progress.add_task("[cyan]Verifying DNS records...", total=len(self.subdomains))
+                    
+                    for subdomain in self.subdomains:
+                        try:
+                            ip = socket.gethostbyname(subdomain)
+                            verified[subdomain] = ip
+                        except:
+                            pass
+                        progress.update(task, advance=1)
+            else:
+                for subdomain in self.subdomains:
+                    try:
+                        ip = socket.gethostbyname(subdomain)
+                        verified[subdomain] = ip
+                    except:
+                        pass
+        except Exception as e:
+            log_msg(f"Verification error: {str(e)}", "ERROR")
         
         self.results['verified_subdomains'] = verified
         return verified
 
     def save_results(self, output_file: str = None):
-        """
-        Save results to files (JSON and TXT formats).
-        """
+        """Save results to JSON and TXT"""
         if output_file is None:
-            output_file = f"subdomains_{self.domain}_{int(time.time())}"
+            output_file = f"findomain_{self.domain}_{int(time.time())}"
         
-        # Save as JSON
+        # JSON output
         json_file = f"{output_file}.json"
         try:
             with open(json_file, 'w') as f:
                 json.dump(self.results, f, indent=2)
-            self.log(f"Results saved to {json_file}", "SUCCESS")
+            log_msg(f"Results saved to {json_file}", "SUCCESS")
         except Exception as e:
-            self.log(f"Failed to save JSON: {str(e)}", "ERROR")
+            log_msg(f"Failed to save JSON: {str(e)}", "ERROR")
         
-        # Save as TXT (simple list)
+        # TXT output
         txt_file = f"{output_file}.txt"
         try:
             with open(txt_file, 'w') as f:
-                f.write(f"Subdomains for {self.domain}\n")
+                f.write(f"{'='*70}\n")
+                f.write(f"FINDOMAIN v2.0 - Subdomains for: {self.domain}\n")
                 f.write(f"Generated: {datetime.now()}\n")
-                f.write("=" * 60 + "\n\n")
+                f.write(f"Total Found: {len(self.subdomains)}\n")
+                f.write(f"Author: bugxcve\n")
+                f.write(f"{'='*70}\n\n")
                 for subdomain in sorted(self.subdomains):
                     f.write(f"{subdomain}\n")
-            self.log(f"Results saved to {txt_file}", "SUCCESS")
+            log_msg(f"Results saved to {txt_file}", "SUCCESS")
         except Exception as e:
-            self.log(f"Failed to save TXT: {str(e)}", "ERROR")
+            log_msg(f"Failed to save TXT: {str(e)}", "ERROR")
         
         return json_file, txt_file
 
-    def print_summary(self):
-        """Print a summary of results."""
-        print("\n" + "=" * 60)
-        print(f"SUBDOMAIN ENUMERATION SUMMARY FOR: {self.domain}")
-        print("=" * 60)
-        print(f"\nTotal Subdomains Found: {len(self.subdomains)}\n")
+    def display_results(self, verified: Dict[str, str] = None):
+        """Display results in beautiful format"""
+        if RICH_AVAILABLE:
+            # Summary table
+            summary_table = Table(title="[bold]Enumeration Summary[/bold]", box=ROUNDED)
+            summary_table.add_column("Metric", style="cyan", width=30)
+            summary_table.add_column("Value", style="green")
+            
+            summary_table.add_row("Target Domain", self.domain)
+            summary_table.add_row("Total Subdomains", str(len(self.subdomains)))
+            summary_table.add_row("Verified Subdomains", str(len(verified)) if verified else "0")
+            summary_table.add_row("Timestamp", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            
+            console.print()
+            console.print(summary_table)
+            console.print()
+            
+            # Techniques breakdown
+            tech_table = Table(title="[bold]Techniques Breakdown[/bold]", box=ROUNDED)
+            tech_table.add_column("Technique", style="magenta")
+            tech_table.add_column("Found", style="yellow")
+            
+            for technique, subdomains in self.results['techniques'].items():
+                tech_table.add_row(technique.replace('_', ' ').title(), str(len(subdomains)))
+            
+            console.print(tech_table)
+            console.print()
+            
+            # Subdomains list
+            if self.subdomains:
+                sub_table = Table(title="[bold]Discovered Subdomains[/bold]", box=ROUNDED)
+                sub_table.add_column("No.", style="cyan", width=5)
+                sub_table.add_column("Subdomain", style="green")
+                sub_table.add_column("IP", style="yellow")
+                
+                for idx, subdomain in enumerate(sorted(self.subdomains), 1):
+                    ip = verified.get(subdomain, "Not resolved") if verified else "Not checked"
+                    sub_table.add_row(str(idx), subdomain, ip)
+                
+                console.print(sub_table)
+        else:
+            # Basic output
+            print("\n" + "="*70)
+            print(f"FINDOMAIN v2.0 - ENUMERATION SUMMARY FOR: {self.domain}")
+            print("="*70)
+            print(f"Total Subdomains Found: {len(self.subdomains)}")
+            if verified:
+                print(f"Verified Subdomains: {len(verified)}")
+            print("="*70 + "\n")
+            
+            if self.subdomains:
+                print("DISCOVERED SUBDOMAINS:")
+                print("-"*70)
+                for subdomain in sorted(self.subdomains):
+                    if verified:
+                        ip = verified.get(subdomain, "Not resolved")
+                        print(f"  {subdomain:<40} | IP: {ip}")
+                    else:
+                        print(f"  {subdomain}")
+            print("\n" + "="*70 + "\n")
+
+
+def interactive_mode():
+    """Interactive CLI mode"""
+    print_header()
+    
+    while True:
+        if RICH_AVAILABLE:
+            domain = console.input("[bold cyan]Enter domain to enumerate[/bold cyan] (or 'quit' to exit): ").strip()
+        else:
+            domain = input("\n➤ Enter domain to enumerate (or 'quit' to exit): ").strip()
         
-        if self.subdomains:
-            print("Discovered Subdomains:")
-            print("-" * 60)
-            for subdomain in sorted(self.subdomains):
-                print(f"  • {subdomain}")
+        if domain.lower() == 'quit':
+            if RICH_AVAILABLE:
+                console.print("[yellow]Goodbye![/yellow]")
+            else:
+                print("Goodbye!")
+            sys.exit(0)
         
-        print("\n" + "=" * 60 + "\n")
+        if not domain:
+            log_msg("Please enter a domain", "WARNING")
+            continue
+        
+        if not validate_domain(domain):
+            log_msg(f"Invalid domain format: {domain}", "ERROR")
+            continue
+        
+        # Ask for verification
+        if RICH_AVAILABLE:
+            verify = console.input("\n[bold cyan]Verify DNS records?[/bold cyan] (y/n): ").strip().lower() == 'y'
+        else:
+            verify = input("\nVerify DNS records? (y/n): ").strip().lower() == 'y'
+        
+        # Run enumeration
+        enumerator = Findomain(domain)
+        subdomains = enumerator.enumerate_all()
+        
+        verified = None
+        if verify:
+            verified = enumerator.verify_subdomains()
+        
+        # Save results
+        json_file, txt_file = enumerator.save_results()
+        
+        # Display results
+        enumerator.display_results(verified)
+        
+        if RICH_AVAILABLE:
+            console.print(f"[green]✓ Results saved to:[/green]")
+            console.print(f"  • {json_file}")
+            console.print(f"  • {txt_file}\n")
+        else:
+            print(f"Results saved to:\n  • {json_file}\n  • {txt_file}\n")
+        
+        # Ask to continue
+        if RICH_AVAILABLE:
+            cont = console.input("[bold cyan]Enumerate another domain?[/bold cyan] (y/n): ").strip().lower() == 'y'
+        else:
+            cont = input("\nEnumerate another domain? (y/n): ").strip().lower() == 'y'
+        
+        if not cont:
+            if RICH_AVAILABLE:
+                console.print("[yellow]Goodbye![/yellow]")
+            else:
+                print("Goodbye!")
+            break
 
 
 def main():
-    """Main function with CLI argument parsing."""
+    """Main function"""
     parser = argparse.ArgumentParser(
-        description='Comprehensive Subdomain Enumeration Tool',
+        description='findomain v2.0 - Advanced Subdomain Enumeration by bugxcve',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
-  python3 subdomain_enumerator.py google.com
-  python3 subdomain_enumerator.py example.com -v
-  python3 subdomain_enumerator.py test.com -o results
-  python3 subdomain_enumerator.py test.com -v --verify
+  python3 findomain.py google.com
+  python3 findomain.py example.com -v
+  python3 findomain.py test.com --verify -o results
+  python3 findomain.py                    (Interactive mode)
         '''
     )
     
-    parser.add_argument('domain', help='Target domain to enumerate')
-    parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose output')
-    parser.add_argument('-o', '--output', help='Output file name (without extension)')
-    parser.add_argument('--verify', action='store_true', help='Verify DNS resolution for found subdomains')
+    parser.add_argument('domain', nargs='?', help='Target domain (optional, use interactive mode if not provided)')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('-o', '--output', help='Output file name')
+    parser.add_argument('--verify', action='store_true', help='Verify DNS records')
     
     args = parser.parse_args()
     
     try:
-        # Initialize enumerator
-        enumerator = SubdomainEnumerator(args.domain, args.verbose)
-        
-        # Run enumeration
-        subdomains = enumerator.enumerate_all()
-        
-        # Verify if requested
-        if args.verify:
-            print()
-            enumerator.verify_subdomains()
-        
-        # Save results
-        output_file = args.output or f"subdomains_{args.domain}"
-        json_file, txt_file = enumerator.save_results(output_file)
-        
-        # Print summary
-        enumerator.print_summary()
-        
-        print(f"Results saved to:")
-        print(f"  • {json_file}")
-        print(f"  • {txt_file}\n")
-        
+        if not args.domain:
+            # Interactive mode
+            interactive_mode()
+        else:
+            # CLI mode
+            print_header()
+            
+            if not validate_domain(args.domain):
+                log_msg(f"Invalid domain format: {args.domain}", "ERROR")
+                sys.exit(1)
+            
+            enumerator = Findomain(args.domain, args.verbose)
+            subdomains = enumerator.enumerate_all()
+            
+            verified = None
+            if args.verify:
+                verified = enumerator.verify_subdomains()
+            
+            output_file = args.output or f"findomain_{args.domain}"
+            json_file, txt_file = enumerator.save_results(output_file)
+            
+            enumerator.display_results(verified)
+            
+            if RICH_AVAILABLE:
+                console.print(f"[green]✓ Results saved to:[/green]")
+                console.print(f"  • {json_file}")
+                console.print(f"  • {txt_file}\n")
+            else:
+                print(f"Results saved to:\n  • {json_file}\n  • {txt_file}\n")
+            
     except KeyboardInterrupt:
-        print("\n\n[!] Enumeration interrupted by user")
+        log_msg("\nEnumeration interrupted by user", "WARNING")
         sys.exit(1)
     except Exception as e:
-        print(f"\n[!] Fatal error: {str(e)}")
+        log_msg(f"Fatal error: {str(e)}", "ERROR")
         sys.exit(1)
 
 
